@@ -8,6 +8,7 @@ dataPacket::dataPacket()
     this->pkt_data = nullptr;
     this->time = "";
     this->length = 0;
+    this->protocol = "";
 
 }
 void dataPacket::setPkt_data(const u_char *pkt_data, int length){
@@ -32,7 +33,13 @@ void dataPacket::setLength(u_int length){
 u_int dataPacket::getLength(){
     return length;
 }
+void dataPacket::setProtocol(QString proto){
+   this->protocol = proto;
+}
 
+QString dataPacket::getProtocol(){
+    return this->protocol;
+}
 
 u_short dataPacket::getNetProtocol(){
     etherHeader * header = (etherHeader *)pkt_data;
@@ -223,15 +230,18 @@ u_int dataPacket::getTcpOption(u_char offset){
     return ntohl(header->option);
 }
 
-//// udp属性
-//u_short dataPacket::getUdpSport(){
+// udp属性
+u_short dataPacket::getUdpSport(u_char offset){
+    udpHeader * header = (udpHeader *)(pkt_data + offset);
+    return ntohs(header->sPort);
+}
 
-//}
+u_short dataPacket::getUdpDport(u_char offset){
+    udpHeader * header = (udpHeader *)(pkt_data + offset);
+    return ntohs(header->dPort);
+}
 
-//u_short dataPacket::getUdpDport(){
-
-//}
-
-//u_short dataPacket::getUdpLen(){
-
-//}
+u_short dataPacket::getUdpLen(u_char offset){
+    udpHeader * header = (udpHeader *)(pkt_data + offset);
+    return ntohs(header->len);
+}

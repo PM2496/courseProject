@@ -14,7 +14,7 @@ private:
     const u_char * pkt_data;
     QString time;
     u_int length;
-
+    QString protocol;
 //    QString sMacAddr;
 //    QString dMacAddr;
 //    QString netProtocol;
@@ -26,9 +26,12 @@ public:
     QString getTime();
     void setLength(u_int length);
     u_int getLength();
+    void setProtocol(QString proto);
+    QString getProtocol();
     u_short getNetProtocol();
     QString getSMacAddr();
     QString getDMacAddr();
+
 
     QString byteToHex(u_char str);
     // IPv4属性

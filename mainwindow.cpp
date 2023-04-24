@@ -83,8 +83,6 @@ void MainWindow::showAdapter(){
 
 void MainWindow::pkt_dataHandler(dataPacket packet){
     etherHandler(packet);
-
-
 }
 
 void MainWindow::on_comboBox_currentIndexChanged(int index){
@@ -125,7 +123,7 @@ int MainWindow::capture(){
     return 0;
 }
 
-void MainWindow::etherHandler(dataPacket packet){
+void MainWindow::etherHandler(dataPacket &packet){
     qDebug() << packet.getTime();
     qDebug() << "len=" << packet.getLength();
 
@@ -133,6 +131,7 @@ void MainWindow::etherHandler(dataPacket packet){
     qDebug() << "dMAc:" << packet.getDMacAddr();
     u_short netProtocol = packet.getNetProtocol();
     qDebug() << "netProtocol:" << netProtocol;
+
     switch (netProtocol){
     // IPv4
     case 0x0800:
@@ -144,15 +143,18 @@ void MainWindow::etherHandler(dataPacket packet){
         break;
     // ARP
     case 0x0806:
+        packet.setProtocol("ARP");
         arpHandler(packet, 14);
         break;
     // Don't care
     default:
         break;
     }
+    qDebug() << "protocol:" << packet.getProtocol();
+    qDebug() << "--------------------------------------------";
 }
 
-void MainWindow::ipV4Handler(dataPacket packet, u_char offset){
+void MainWindow::ipV4Handler(dataPacket &packet, u_char offset){
     qDebug() << "version:" << packet.getIPv4Ver(offset);
     qDebug() << "HeaderLen:" << packet.getIPv4Hlen(offset);
     qDebug() << "tos:" << packet.getIPv4Tos(offset);
@@ -171,26 +173,27 @@ void MainWindow::ipV4Handler(dataPacket packet, u_char offset){
     u_char transProtocol = packet.getIpv4Protocol(offset);
     switch (transProtocol){
     case 6:
+        packet.setProtocol("TCP");
         tcpHandler(packet, offset1);
         break;
     case 17:
+        packet.setProtocol("UDP");
         udpHandler(packet, offset1);
         break;
     }
 
-    qDebug() << "--------------------------------------------";
 }
 
 
-void MainWindow::ipV6Handler(dataPacket packet, u_char offset){
+void MainWindow::ipV6Handler(dataPacket &packet, u_char offset){
 
 }
 
-void MainWindow::arpHandler(dataPacket packet, u_char offset){
+void MainWindow::arpHandler(dataPacket &packet, u_char offset){
 
 }
 
-void MainWindow::tcpHandler(dataPacket packet, u_char offset){
+void MainWindow::tcpHandler(dataPacket &packet, u_char offset){
     qDebug() << "sPort:" << packet.getTcpSport(offset);
     qDebug() << "dPort:" << packet.getTcpDport(offset);
     qDebug() << "seq:" << packet.getTcpSeq(offset);
@@ -210,8 +213,10 @@ void MainWindow::tcpHandler(dataPacket packet, u_char offset){
     qDebug() << "urg_ptr:" << packet.getTcpUrg_ptr(offset);
 }
 
-void MainWindow::udpHandler(dataPacket packet, u_char offset){
-    qDebug() << "UDP";
+void MainWindow::udpHandler(dataPacket &packet, u_char offset){
+    qDebug() << "sPort:" << packet.getUdpSport(offset);
+    qDebug() << "dPort:" << packet.getUdpDport(offset);
+    qDebug() << "len:" << packet.getUdpLen(offset);
 }
 
 
