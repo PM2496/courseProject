@@ -15,6 +15,9 @@ private:
     QString time;
     u_int length;
     QString protocol;
+    QString sAddr;
+    QString dAddr;
+    QString info; // 包括端口信息和数据长度
 //    QString sMacAddr;
 //    QString dMacAddr;
 //    QString netProtocol;
@@ -28,7 +31,14 @@ public:
     u_int getLength();
     void setProtocol(QString proto);
     QString getProtocol();
+    void setSAddr(QString addr);
+    QString getSAddr();
+    void setDAddr(QString addr);
+    QString getDAddr();
+    void setInfo(QString info);
+    QString getInfo();
     u_short getNetProtocol();
+
     QString getSMacAddr();
     QString getDMacAddr();
 
