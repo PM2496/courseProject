@@ -20,12 +20,12 @@ public:
     ~MainWindow();
     void showAdapter();
     int capture();
-    void ipV4Handler(dataPacket packet, u_char offset);
-    void ipV6Handler(dataPacket packet, u_char offset);
-    void arpHandler(dataPacket packet, u_char offset);
-    void etherHandler(dataPacket packet);
-    void tcpHandler(dataPacket packet, u_char offset);
-    void udpHandler(dataPacket packet, u_char offset);
+    void ipV4Handler(dataPacket &packet, u_char offset);
+    void ipV6Handler(dataPacket &packet, u_char offset);
+    void arpHandler(dataPacket &packet, u_char offset);
+    void etherHandler(dataPacket &packet);
+    void tcpHandler(dataPacket &packet, u_char offset);
+    void udpHandler(dataPacket &packet, u_char offset);
 public slots:
     void pkt_dataHandler(dataPacket packet);
 
@@ -38,7 +38,6 @@ private:
     pcap_if_t * device;
     pcap_t * device_pointer;
     char errbuf[PCAP_ERRBUF_SIZE];
-
 };
 
 #endif // MAINWINDOW_H
