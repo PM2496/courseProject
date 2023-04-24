@@ -156,6 +156,7 @@ void MainWindow::ipV4Handler(dataPacket packet, u_char offset){
     qDebug() << "version:" << packet.getIPv4Ver(offset);
     qDebug() << "HeaderLen:" << packet.getIPv4Hlen(offset);
     qDebug() << "tos:" << packet.getIPv4Tos(offset);
+    qDebug() << "tlen:" << packet.getIPv4Tlen(offset);
     qDebug() << "identification:" << packet.getIpv4Identification(offset);
     qDebug() << "flags:" << packet.getIpv4Flags(offset);
     qDebug() << "offset" << packet.getIpv4Offset(offset);
@@ -190,11 +191,27 @@ void MainWindow::arpHandler(dataPacket packet, u_char offset){
 }
 
 void MainWindow::tcpHandler(dataPacket packet, u_char offset){
-
+    qDebug() << "sPort:" << packet.getTcpSport(offset);
+    qDebug() << "dPort:" << packet.getTcpDport(offset);
+    qDebug() << "seq:" << packet.getTcpSeq(offset);
+    qDebug() << "ack:" << packet.getTcpAck(offset);
+    u_short tcpHlen_keep_stat = packet.getTcpHlen_keep_stat(offset);
+    qDebug() << "hlen:" << (tcpHlen_keep_stat>>12)*4;
+    qDebug() << "keep:" << ((tcpHlen_keep_stat>>6)&0x3F);
+    u_char stat = tcpHlen_keep_stat&0x3F;
+    qDebug() << "URG:" << (stat>>5);
+    qDebug() << "ACK:" << ((stat>>4)&0x1);
+    qDebug() << "PSH:" << ((stat>>3)&0x1);
+    qDebug() << "RST:" << ((stat>>2)&0x1);
+    qDebug() << "SYN:" << ((stat>>1)&0x1);
+    qDebug() << "FIN:" << (stat&0x1);
+    qDebug() << "winSize:" << packet.getTcpWinsize(offset);
+    qDebug() << "checkSum:" << packet.getTcpChecksum(offset);
+    qDebug() << "urg_ptr:" << packet.getTcpUrg_ptr(offset);
 }
 
 void MainWindow::udpHandler(dataPacket packet, u_char offset){
-
+    qDebug() << "UDP";
 }
 
 
