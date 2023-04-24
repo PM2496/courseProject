@@ -1,0 +1,40 @@
+<RCC>
+    <qresource prefix="/">
+        <file>document-open.png</file>
+        <file>edit-find.png</file>
+        <file>filter-toolbar-add.png</file>
+        <file>filter-toolbar-apply.png</file>
+        <file>filter-toolbar-bookmark.png</file>
+        <file>filter-toolbar-clear.png</file>
+        <file>filter-toolbar-input.png</file>
+        <file>filter-toolbar-recent.png</file>
+        <file>go-first.png</file>
+        <file>go-jump.png</file>
+        <file>go-last.png</file>
+        <file>go-next.png</file>
+        <file>go-previous.png</file>
+        <file>related-ack.png</file>
+        <file>related-current.png</file>
+        <file>related-dup-ack.png</file>
+        <file>related-first.png</file>
+        <file>related-last.png</file>
+        <file>related-other.png</file>
+        <file>related-request.png</file>
+        <file>related-response.png</file>
+        <file>related-segment.png</file>
+        <file>src.qrc</file>
+        <file>x-capture-file-close.png</file>
+        <file>x-capture-file-reload.png</file>
+        <file>x-capture-file-save.png</file>
+        <file>x-capture-options.png</file>
+        <file>x-capture-restart.png</file>
+        <file>x-capture-start.png</file>
+        <file>x-capture-stop.png</file>
+        <file>x-colorize-packets.png</file>
+        <file>x-resize-columns.png</file>
+        <file>x-stay-last.png</file>
+        <file>zoom-in.png</file>
+        <file>zoom-original.png</file>
+        <file>zoom-out.png</file>
+    </qresource>
+</RCC>
