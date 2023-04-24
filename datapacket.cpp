@@ -177,39 +177,50 @@ QString dataPacket::getIpv4DAddr(u_char offset){
 
 //// tcp属性
 u_short dataPacket::getTcpSport(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohs(header->sPort);
 }
 
 u_short dataPacket::getTcpDport(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohs(header->dPort);
 }
 
 u_int dataPacket::getTcpSeq(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohl(header->seq);
 }
 
 u_int dataPacket::getTcpAck(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohl(header->ack);
 }
 
 u_short dataPacket::getTcpHlen_keep_stat(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+//    // 高四位为头部长度，单位为4字节
+//    return ((ntohs(header->hlen_keep_stat))>>12)*4;
+    return ntohs(header->hlen_keep_stat);
 }
 
 u_short dataPacket::getTcpWinsize(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohs(header->winSize);
 }
 
 u_short dataPacket::getTcpChecksum(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohs(header->checkSum);
 }
 
 u_short dataPacket::getTcpUrg_ptr(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohs(header->urg_ptr);
 }
 
 u_int dataPacket::getTcpOption(u_char offset){
-
+    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
+    return ntohl(header->option);
 }
 
 //// udp属性
