@@ -37,6 +37,7 @@ private:
     pcap_if_t * alldevices;
     pcap_if_t * device;
     pcap_t * device_pointer;
+    u_int counterNum;
     char errbuf[PCAP_ERRBUF_SIZE];
 };
 

@@ -33,6 +33,31 @@ void dataPacket::setLength(u_int length){
 u_int dataPacket::getLength(){
     return length;
 }
+
+void dataPacket::setSAddr(QString addr){
+    this->sAddr = addr;
+}
+
+QString dataPacket::getSAddr(){
+    return this->sAddr;
+}
+
+void dataPacket::setDAddr(QString addr){
+    this->dAddr = addr;
+}
+
+QString dataPacket::getDAddr(){
+    return this->dAddr;
+}
+
+void dataPacket::setInfo(QString info){
+    this->info += info;
+}
+
+QString dataPacket::getInfo(){
+    return this->info;
+}
+
 void dataPacket::setProtocol(QString proto){
    this->protocol = proto;
 }

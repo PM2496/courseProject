@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 #include <QString>
 #include <QDebug>
+#include <QStringList>
+#include <QMessageBox>
+#include <QColor>
 #include "multhread.h"
 #include "packetHeader.h"
 
@@ -10,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    counterNum = 0;
     ui->tableWidget->setColumnCount(7);
     ui->tableWidget->verticalHeader()->setDefaultSectionSize(30);
     QStringList title = {"NO.", "Time", "Source", "Destination", "Protocol", "Length", "Info"};
@@ -82,7 +86,78 @@ void MainWindow::showAdapter(){
 }
 
 void MainWindow::pkt_dataHandler(dataPacket packet){
-    etherHandler(packet);
+//    etherHandler(packet);
+    u_short netProtocol = packet.getNetProtocol();
+    // switch-case语句里面不能定义变量
+    bool flag = true;
+    u_char offset = 14;
+    u_char offset1 = 0;
+    u_char offset2 = 0;
+    u_char transProtocol = 0;
+    switch (netProtocol){
+    // IPv4
+    case 0x0800:
+        // 设置源地址
+        packet.setSAddr(packet.getIpv4SAddr(offset));
+        // 设置目的地址
+        packet.setDAddr(packet.getIpv4DAddr(offset));
+        transProtocol = packet.getIpv4Protocol(offset);
+        switch (transProtocol){
+        case 6:
+            offset1 = offset + packet.getIPv4Hlen(offset);
+            packet.setProtocol("TCP");
+            packet.setInfo(QString::number(packet.getTcpSport(offset1)));
+            packet.setInfo("->");
+            packet.setInfo(QString::number(packet.getTcpDport(offset1)));
+            packet.setInfo(", len=");
+            // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
+            packet.setInfo(QString::number(packet.getIPv4Tlen(offset)-packet.getIPv4Hlen(offset)-(packet.getTcpHlen_keep_stat(offset1)>>12)*4));
+            break;
+        case 17:
+            offset2 = offset + packet.getIPv4Hlen(offset);
+            packet.setProtocol("UDP");
+            packet.setInfo(QString::number(packet.getUdpSport(offset2)));
+            packet.setInfo("->");
+            packet.setInfo(QString::number(packet.getTcpDport(offset2)));
+            packet.setInfo(", len=");
+            // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
+            packet.setInfo(QString::number(packet.getUdpLen(offset2)));
+            break;
+        default:
+            flag = false;
+            break;
+        }
+        break;
+
+////    // IPv6
+////    case 0x86DD:
+////        u_char offset = 14;
+
+////        break;
+////    // ARP
+////    case 0x0806:
+////        packet.setProtocol("ARP");
+////        arpHandler(packet, 14);
+////        break;
+    // Don't care
+    default:
+        flag = false;
+        break;
+    }
+
+    if(flag){
+        ui->tableWidget->insertRow(counterNum);
+        ui->tableWidget->setItem(counterNum,0,new QTableWidgetItem(QString::number(counterNum + 1)));
+        ui->tableWidget->setItem(counterNum,1,new QTableWidgetItem(packet.getTime()));
+        ui->tableWidget->setItem(counterNum,2,new QTableWidgetItem(packet.getSAddr()));
+        ui->tableWidget->setItem(counterNum,3,new QTableWidgetItem(packet.getDAddr()));
+        ui->tableWidget->setItem(counterNum,4,new QTableWidgetItem(packet.getProtocol()));
+        ui->tableWidget->setItem(counterNum,5,new QTableWidgetItem(QString::number(packet.getLength())));
+        ui->tableWidget->setItem(counterNum,6,new QTableWidgetItem(packet.getInfo()));
+        counterNum++;
+    }
+
+
 }
 
 void MainWindow::on_comboBox_currentIndexChanged(int index){
