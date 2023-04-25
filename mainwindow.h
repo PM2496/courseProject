@@ -6,6 +6,7 @@
 #include "pcap.h"
 #include "winsock2.h"
 #include "datapacket.h"
+#include <QVector>
 
 namespace Ui {
 class MainWindow;
@@ -28,7 +29,7 @@ public:
     void udpHandler(dataPacket &packet, u_char offset);
 public slots:
     void pkt_dataHandler(dataPacket packet);
-
+    void parseData(int row, int clumn);
 private slots:
     void on_comboBox_currentIndexChanged(int index);
 
@@ -37,7 +38,9 @@ private:
     pcap_if_t * alldevices;
     pcap_if_t * device;
     pcap_t * device_pointer;
+    QVector<dataPacket> datas; // 储存数据
     u_int counterNum; // 记录有效捕获条数
+    int mode; // 1表示混杂模式， 0表示非混杂模式
     char errbuf[PCAP_ERRBUF_SIZE];
 };
 
