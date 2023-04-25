@@ -37,7 +37,7 @@ private:
     pcap_if_t * alldevices;
     pcap_if_t * device;
     pcap_t * device_pointer;
-    u_int counterNum;
+    u_int counterNum; // 记录有效捕获条数
     char errbuf[PCAP_ERRBUF_SIZE];
 };
 

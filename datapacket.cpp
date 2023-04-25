@@ -207,6 +207,55 @@ QString dataPacket::getIpv4DAddr(u_char offset){
 
 //}
 
+// IPv6属性
+u_int dataPacket::getIpv6Ver_tc_fl(u_char offset){
+    ipv6Header * header = (ipv6Header *)(pkt_data + offset);
+    return header->ver_tc_fl;
+}
+
+u_short dataPacket::getIpv6Len(u_char offset){
+    ipv6Header * header = (ipv6Header *)(pkt_data + offset);
+    return header->len;
+}
+
+u_char dataPacket::getIpv6NextHeader(u_char offset){
+    ipv6Header * header = (ipv6Header *)(pkt_data + offset);
+    return header->nextHeader;
+}
+
+u_char dataPacket::getIpv6HL(u_char offset){
+    ipv6Header * header = (ipv6Header *)(pkt_data + offset);
+    return header->HL;
+}
+
+QString dataPacket::getIpv6SAddr(u_char offset){
+    ipv6Header * header = (ipv6Header *)(pkt_data + offset);
+    char * sAddr = header->sAddr;
+    QString addr = "";
+    for(int i=0; i<16; ){
+        addr += byteToHex(sAddr[i++]);
+        addr += byteToHex(sAddr[i++]);
+        if(i == 16)
+            continue;
+        addr += ":";
+    }
+    return addr;
+}
+
+QString dataPacket::getIpv6DAddr(u_char offset){
+    ipv6Header * header = (ipv6Header *)(pkt_data + offset);
+    char * dAddr = header->dAddr;
+    QString addr = "";
+    for(int i=0; i<16; ){
+        addr += byteToHex(dAddr[i++]);
+        addr += byteToHex(dAddr[i++]);
+        if(i == 16)
+            continue;
+        addr += ":";
+    }
+    return addr;
+}
+
 //// tcp属性
 u_short dataPacket::getTcpSport(u_char offset){
     tcpHeader * header = (tcpHeader *)(pkt_data + offset);

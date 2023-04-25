@@ -58,6 +58,13 @@ public:
     QString getIpv4SAddr(u_char offset);
     QString getIpv4DAddr(u_char offset);
 //    u_int getIpv4Option_pad();
+    // IPv6属性
+    u_int getIpv6Ver_tc_fl(u_char offset);
+    u_short getIpv6Len(u_char offset);
+    u_char getIpv6NextHeader(u_char offset);
+    u_char getIpv6HL(u_char offset);
+    QString getIpv6SAddr(u_char offset);
+    QString getIpv6DAddr(u_char offset);
 
     // tcp属性
     u_short getTcpSport(u_char offset);
