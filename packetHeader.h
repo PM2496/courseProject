@@ -25,11 +25,11 @@ typedef struct etherHeader{
 
 // ipv4头部
 typedef struct ipv4Header{
-    u_char ver_hlen; // 版本（低四位）， 头部长度（高四位，单位是4字节），注意大小端的不同
+    u_char ver_hlen; // 版本（高四位）， 头部长度（低四位，单位是4字节），注意大小端的不同
     u_char tos; // 8位服务类型
     u_short tlen; // 16位总长度(字节数)
     u_short identification; // 16位标识
-    u_short flags_offset; // 标志位（低三位），段偏移量（高十三位），注意大小端的不同
+    u_short flags_offset; // 标志位（高三位），段偏移量（低十三位），注意大小端的不同
     u_char ttl; // 8位生存时间
     u_char protocol; // 8位协议
     u_short crc; // 16位首部校验和
@@ -38,9 +38,15 @@ typedef struct ipv4Header{
     u_int option_pad; // 选项与填充（32位）
 } ipHeader;
 
-//typedef struct ipv6Header{
-
-//};
+// ipv6头部，这里不考虑扩展首部（仅考虑next header为6（对应TCP）和7（对应UDP））
+typedef struct ipv6Header{
+    u_int ver_tc_fl; // 版本（高4位），traffic class（次8位），flow label流标签（低20位）
+    u_short len; // 数据包长度， 16位
+    u_char nextHeader; // next header， 6：TCP， 17：UDP
+    u_char HL; // Hop Limit
+    char sAddr[16];
+    char dAddr[16];
+} ipv6Header;
 
 // tcp头部
 typedef struct tcpHeader{

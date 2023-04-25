@@ -129,16 +129,44 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         }
         break;
 
-////    // IPv6
-////    case 0x86DD:
-////        u_char offset = 14;
-
-////        break;
-////    // ARP
-////    case 0x0806:
-////        packet.setProtocol("ARP");
-////        arpHandler(packet, 14);
-////        break;
+        // IPv6
+    case 0x86DD:
+        // 设置源地址
+        packet.setSAddr(packet.getIpv6SAddr(offset));
+        // 设置目的地址
+        packet.setDAddr(packet.getIpv6DAddr(offset));
+        transProtocol = packet.getIpv6NextHeader(offset);
+        switch (transProtocol){
+        case 6:
+            offset1 = offset + 40; // ipv6头部长度为40字节
+            packet.setProtocol("TCP");
+            packet.setInfo(QString::number(packet.getTcpSport(offset1)));
+            packet.setInfo("->");
+            packet.setInfo(QString::number(packet.getTcpDport(offset1)));
+            packet.setInfo(", len=");
+            // 设置包中数据长度，等于ipv6有效载荷数据包长度减去tcp首部长度
+            packet.setInfo(QString::number(packet.getIpv6Len(offset)-(packet.getTcpHlen_keep_stat(offset1)>>12)*4));
+            break;
+        case 17:
+            offset2 = offset + 40;
+            packet.setProtocol("UDP");
+            packet.setInfo(QString::number(packet.getUdpSport(offset2)));
+            packet.setInfo("->");
+            packet.setInfo(QString::number(packet.getTcpDport(offset2)));
+            packet.setInfo(", len=");
+            // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
+            packet.setInfo(QString::number(packet.getUdpLen(offset2)));
+            break;
+        default:
+            flag = false;
+            break;
+        }
+        break;
+//    // ARP
+//    case 0x0806:
+//        packet.setProtocol("ARP");
+//        arpHandler(packet, 14);
+//        break;
     // Don't care
     default:
         flag = false;
