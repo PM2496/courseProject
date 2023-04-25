@@ -14,8 +14,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     counterNum = 0;
+    mode = 1; // 默认为混杂模式
+    datas.clear(); // 数据清空
     ui->tableWidget->setColumnCount(7);
-    ui->tableWidget->verticalHeader()->setDefaultSectionSize(30);
+    ui->tableWidget->verticalHeader()->setDefaultSectionSize(40); // 设置高度
     QStringList title = {"NO.", "Time", "Source", "Destination", "Protocol", "Length", "Info"};
     ui->tableWidget->setHorizontalHeaderLabels(title);
 
@@ -27,6 +29,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->tableWidget->setColumnWidth(5, 100);
     ui->tableWidget->setColumnWidth(6, 1000);
 
+    // 设置表头宽度自适应
+//    ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+//    ui->tableWidget->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+
+    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows); // 设置整行选中
+    ui->tableWidget->setEditTriggers(QAbstractItemView::NoEditTriggers); // 设置不可编辑
 
 
     this->showAdapter();
@@ -60,8 +68,11 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionRun->setEnabled(true);
         ui->comboBox->setEnabled(true);
     });
-
+    // 开启新线程处理数据
     connect(thread, &multhread::getPkt_data, this, &MainWindow::pkt_dataHandler);
+
+    // 点击行元素触发解析事件
+    connect(ui->tableWidget, &QTableWidget::cellClicked, this, &MainWindow::parseData);
 
 }
 
@@ -102,9 +113,9 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         // 设置目的地址
         packet.setDAddr(packet.getIpv4DAddr(offset));
         transProtocol = packet.getIpv4Protocol(offset);
+        offset1 = offset + packet.getIPv4Hlen(offset);
         switch (transProtocol){
         case 6:
-            offset1 = offset + packet.getIPv4Hlen(offset);
             packet.setProtocol("TCP");
             packet.setInfo(QString::number(packet.getTcpSport(offset1)));
             packet.setInfo("->");
@@ -114,14 +125,13 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             packet.setInfo(QString::number(packet.getIPv4Tlen(offset)-packet.getIPv4Hlen(offset)-(packet.getTcpHlen_keep_stat(offset1)>>12)*4));
             break;
         case 17:
-            offset2 = offset + packet.getIPv4Hlen(offset);
             packet.setProtocol("UDP");
-            packet.setInfo(QString::number(packet.getUdpSport(offset2)));
+            packet.setInfo(QString::number(packet.getUdpSport(offset1)));
             packet.setInfo("->");
-            packet.setInfo(QString::number(packet.getTcpDport(offset2)));
+            packet.setInfo(QString::number(packet.getTcpDport(offset1)));
             packet.setInfo(", len=");
             // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
-            packet.setInfo(QString::number(packet.getUdpLen(offset2)));
+            packet.setInfo(QString::number(packet.getUdpLen(offset1)));
             break;
         default:
             flag = false;
@@ -136,9 +146,9 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         // 设置目的地址
         packet.setDAddr(packet.getIpv6DAddr(offset));
         transProtocol = packet.getIpv6NextHeader(offset);
+        offset1 = offset + 40; // ipv6头部长度为40字节
         switch (transProtocol){
         case 6:
-            offset1 = offset + 40; // ipv6头部长度为40字节
             packet.setProtocol("TCP");
             packet.setInfo(QString::number(packet.getTcpSport(offset1)));
             packet.setInfo("->");
@@ -148,14 +158,13 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             packet.setInfo(QString::number(packet.getIpv6Len(offset)-(packet.getTcpHlen_keep_stat(offset1)>>12)*4));
             break;
         case 17:
-            offset2 = offset + 40;
             packet.setProtocol("UDP");
-            packet.setInfo(QString::number(packet.getUdpSport(offset2)));
+            packet.setInfo(QString::number(packet.getUdpSport(offset1)));
             packet.setInfo("->");
-            packet.setInfo(QString::number(packet.getTcpDport(offset2)));
+            packet.setInfo(QString::number(packet.getTcpDport(offset1)));
             packet.setInfo(", len=");
             // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
-            packet.setInfo(QString::number(packet.getUdpLen(offset2)));
+            packet.setInfo(QString::number(packet.getUdpLen(offset1)));
             break;
         default:
             flag = false;
@@ -174,6 +183,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
     }
 
     if(flag){
+        datas.push_back(packet);
         ui->tableWidget->insertRow(counterNum);
         ui->tableWidget->setItem(counterNum,0,new QTableWidgetItem(QString::number(counterNum + 1)));
         ui->tableWidget->setItem(counterNum,1,new QTableWidgetItem(packet.getTime()));
@@ -184,7 +194,6 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         ui->tableWidget->setItem(counterNum,6,new QTableWidgetItem(packet.getInfo()));
         counterNum++;
     }
-
 
 }
 
@@ -206,7 +215,7 @@ void MainWindow::on_comboBox_currentIndexChanged(int index){
 
 int MainWindow::capture(){
     if(device){
-        device_pointer = pcap_open_live(device->name, 65536, 1, 1000, errbuf); // 1表示混杂模式
+        device_pointer = pcap_open_live(device->name, 65536, mode, 1000, errbuf); // mode为1表示混杂模式
     }else{
          return -1;
     }
@@ -226,101 +235,103 @@ int MainWindow::capture(){
     return 0;
 }
 
-void MainWindow::etherHandler(dataPacket &packet){
-    qDebug() << packet.getTime();
-    qDebug() << "len=" << packet.getLength();
-
-    qDebug() << "sMac:" << packet.getSMacAddr();
-    qDebug() << "dMAc:" << packet.getDMacAddr();
-    u_short netProtocol = packet.getNetProtocol();
-    qDebug() << "netProtocol:" << netProtocol;
-
-    switch (netProtocol){
-    // IPv4
+void MainWindow::parseData(int row, int clumn){
+//    qDebug() << "row = " << row << ", clumn = " << clumn;
+//    qDebug() << datas[row].getSAddr();
+    ui->treeWidget->clear();
+    QTreeWidgetItem * item = new QTreeWidgetItem(QStringList()<<"Ethernet");
+    ui->treeWidget->addTopLevelItem(item);
+    item->addChild(new QTreeWidgetItem(QStringList()<<"Source: "+datas[row].getSMacAddr()));
+    item->addChild(new QTreeWidgetItem(QStringList()<<"Destination: "+datas[row].getDMacAddr()));
+    u_char offset = 14;
+    u_char offset1 = 0;
+    u_char offset2 = 0;
+    QTreeWidgetItem * item1;
+    QTreeWidgetItem * item2;
+    QTreeWidgetItem * item3;
+    QTreeWidgetItem * flagTree;
+    u_char transProtocol = 0;
+    u_short tcpHlen_keep_stat = 0;
+    u_char stat = 0;
+    u_short netProtocol = datas[row].getNetProtocol();
+    switch(netProtocol){
     case 0x0800:
-        ipV4Handler(packet, 14);
+        item->addChild(new QTreeWidgetItem(QStringList()<<"Type: IPv4"));
+        item1 = new QTreeWidgetItem(QStringList()<<"Internet Protocol Version 4");
+        ui->treeWidget->addTopLevelItem(item1);
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Version: 4"));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Header Length: "+QString::number(datas[row].getIPv4Hlen(offset))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Tos: "+QString::number(datas[row].getIPv4Tos(offset))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Total Length:"+QString::number(datas[row].getIPv4Tlen(offset))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Identification: "+QString::number(datas[row].getIpv4Identification(offset))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Flags: "+QString::number(datas[row].getIpv4Flags(offset))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Fragment Offset: "+QString::number(datas[row].getIpv4Offset(offset))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Time to Live: "+QString::number(datas[row].getIpv4Ttl(offset))));
+        transProtocol = datas[row].getIpv4Protocol(offset);
+        switch (transProtocol){
+        case 6:
+            item1->addChild(new QTreeWidgetItem(QStringList()<<"Protocol: TCP"));
+            break;
+        case 17:
+            item1->addChild(new QTreeWidgetItem(QStringList()<<"Protocol: UDP"));
+            break;
+        default:
+            break;
+        }
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Header CheckSum: "+QString::number((datas[row].getIpv4Crc(offset)))));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Source Address: "+datas[row].getIpv4SAddr(offset)));
+        item1->addChild(new QTreeWidgetItem(QStringList()<<"Destination Address: "+datas[row].getIpv4DAddr(offset)));
+        offset1 = offset + datas[row].getIPv4Hlen(offset);
+        switch (transProtocol){
+        case 6:
+            item2 = new QTreeWidgetItem(QStringList()<<"Transmission Control Protocol");
+            ui->treeWidget->addTopLevelItem(item2);
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getTcpSport(offset1))));
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port:"+QString::number(datas[row].getTcpDport(offset1))));
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"Sequence Number: "+QString::number(datas[row].getTcpSeq(offset1))));
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"Acknowledgement Number: "+QString::number(datas[row].getTcpAck(offset1))));
+            tcpHlen_keep_stat = datas[row].getTcpHlen_keep_stat(offset1);
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"Header Length: "+QString::number((tcpHlen_keep_stat>>12)*4)));
+
+            flagTree = new QTreeWidgetItem(QStringList()<<"Flags:" );
+            item2->addChild(flagTree);
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"Keeped: "+QString::number((tcpHlen_keep_stat>>6)&0x3F)));
+            stat = tcpHlen_keep_stat&0x3F;
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"URG:"+QString::number((stat>>5))));
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"ACK:"+QString::number((stat>>4)&0x1)));
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"PSH:"+QString::number((stat>>3)&0x1)));
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"RST:"+QString::number((stat>>2)&0x1)));
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"SYN:"+QString::number((stat>>1)&0x1)));
+            flagTree->addChild(new QTreeWidgetItem(QStringList()<<"FIN:"+QString::number(stat&0x1)));
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"WinSize: "+QString::number(datas[row].getTcpWinsize(offset1))));
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"CheckSum: "+QString::number(datas[row].getTcpChecksum(offset1))));
+            item2->addChild(new QTreeWidgetItem(QStringList()<<"Urgent Pointer: "+QString::number(datas[row].getTcpUrg_ptr(offset1))));
+
+            break;
+        case 17:
+            item3= new QTreeWidgetItem(QStringList()<<"User Datagram Protocol");
+            ui->treeWidget->addTopLevelItem(item3);
+            item3->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getUdpSport(offset1))));
+            item3->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port: "+QString::number(datas[row].getUdpDport(offset1))));
+            item3->addChild(new QTreeWidgetItem(QStringList()<<"Length: "+QString::number(datas[row].getUdpLen(offset1))));
+            break;
+        default:
+            break;
+        }
         break;
-    // IPv6
     case 0x86DD:
-        ipV6Handler(packet, 14);
+        item->addChild(new QTreeWidgetItem(QStringList()<<"IPv6"));
         break;
-    // ARP
-    case 0x0806:
-        packet.setProtocol("ARP");
-        arpHandler(packet, 14);
-        break;
-    // Don't care
     default:
         break;
     }
-    qDebug() << "protocol:" << packet.getProtocol();
-    qDebug() << "--------------------------------------------";
-}
-
-void MainWindow::ipV4Handler(dataPacket &packet, u_char offset){
-    qDebug() << "version:" << packet.getIPv4Ver(offset);
-    qDebug() << "HeaderLen:" << packet.getIPv4Hlen(offset);
-    qDebug() << "tos:" << packet.getIPv4Tos(offset);
-    qDebug() << "tlen:" << packet.getIPv4Tlen(offset);
-    qDebug() << "identification:" << packet.getIpv4Identification(offset);
-    qDebug() << "flags:" << packet.getIpv4Flags(offset);
-    qDebug() << "offset" << packet.getIpv4Offset(offset);
-    qDebug() << "ttl:" << packet.getIpv4Ttl(offset);
-    qDebug() << "transProtocol:" << packet.getIpv4Protocol(offset);
-    qDebug() << "crc:" << packet.getIpv4Crc(offset);
-    qDebug() << "sAddr:" << packet.getIpv4SAddr(offset);
-    qDebug() << "dAddr:" << packet.getIpv4DAddr(offset);
-
-    // 14字节的数据链路层首部和网络层首部长度的和为运输层首部的偏移量
-    u_char offset1 = packet.getIPv4Hlen(offset)+14;
-    u_char transProtocol = packet.getIpv4Protocol(offset);
-    switch (transProtocol){
-    case 6:
-        packet.setProtocol("TCP");
-        tcpHandler(packet, offset1);
-        break;
-    case 17:
-        packet.setProtocol("UDP");
-        udpHandler(packet, offset1);
-        break;
-    }
-
 }
 
 
-void MainWindow::ipV6Handler(dataPacket &packet, u_char offset){
 
-}
 
-void MainWindow::arpHandler(dataPacket &packet, u_char offset){
 
-}
 
-void MainWindow::tcpHandler(dataPacket &packet, u_char offset){
-    qDebug() << "sPort:" << packet.getTcpSport(offset);
-    qDebug() << "dPort:" << packet.getTcpDport(offset);
-    qDebug() << "seq:" << packet.getTcpSeq(offset);
-    qDebug() << "ack:" << packet.getTcpAck(offset);
-    u_short tcpHlen_keep_stat = packet.getTcpHlen_keep_stat(offset);
-    qDebug() << "hlen:" << (tcpHlen_keep_stat>>12)*4;
-    qDebug() << "keep:" << ((tcpHlen_keep_stat>>6)&0x3F);
-    u_char stat = tcpHlen_keep_stat&0x3F;
-    qDebug() << "URG:" << (stat>>5);
-    qDebug() << "ACK:" << ((stat>>4)&0x1);
-    qDebug() << "PSH:" << ((stat>>3)&0x1);
-    qDebug() << "RST:" << ((stat>>2)&0x1);
-    qDebug() << "SYN:" << ((stat>>1)&0x1);
-    qDebug() << "FIN:" << (stat&0x1);
-    qDebug() << "winSize:" << packet.getTcpWinsize(offset);
-    qDebug() << "checkSum:" << packet.getTcpChecksum(offset);
-    qDebug() << "urg_ptr:" << packet.getTcpUrg_ptr(offset);
-}
-
-void MainWindow::udpHandler(dataPacket &packet, u_char offset){
-    qDebug() << "sPort:" << packet.getUdpSport(offset);
-    qDebug() << "dPort:" << packet.getUdpDport(offset);
-    qDebug() << "len:" << packet.getUdpLen(offset);
-}
 
 
 
