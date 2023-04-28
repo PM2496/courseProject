@@ -31,4 +31,6 @@ LIBS += "-LD:/Qt/WpdPack/Lib" -lwpcap -lPacket -lws2_32
 RESOURCES += \
     src/src.qrc
 
+RC_FILE = Shark.rc
+
 CONFIG += C++11

@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     counterNum = 0;
     mode = 1; // 默认为混杂模式
+    // 设置file相关选项，刚开始保存选项无法点击
+    ui->actionSave->setEnabled(false);
     datas.clear(); // 数据清空
     ui->tableWidget->setColumnCount(7);
     ui->tableWidget->verticalHeader()->setDefaultSectionSize(40); // 设置高度
@@ -51,10 +53,13 @@ MainWindow::MainWindow(QWidget *parent) :
             thread->setPointer(device_pointer);
             thread->setFlag();
             thread->start();
-            // 按下run后，run设置为不可点击，stop设置为可点击
+            // 按下run后，open、save、run设置为不可点击，stop设置为可点击，模式不可更改
+            ui->actionOpen->setEnabled(false);
+            ui->actionSave->setEnabled(false);
             ui->actionRun->setEnabled(false);
             ui->actionStop->setEnabled(true);
             ui->comboBox->setEnabled(false);
+            ui->menuMode->setEnabled(false);
         }
 
     });
@@ -64,9 +69,25 @@ MainWindow::MainWindow(QWidget *parent) :
         thread->wait();
         pcap_close(device_pointer);
         device_pointer = nullptr;
+        // 更新按钮状态
+        ui->actionOpen->setEnabled(true);
+        ui->actionSave->setEnabled(true);
         ui->actionStop->setEnabled(false);
         ui->actionRun->setEnabled(true);
         ui->comboBox->setEnabled(true);
+        ui->menuMode->setEnabled(true);
+    });
+    // 切换为混杂模式
+    connect(ui->actionPromiscuous, &QAction::triggered, this, [=](){
+        mode = 1;
+        ui->actionPromiscuous->setEnabled(false);
+        ui->actionDirect->setEnabled(true);
+    });
+    // 切换为直接模式
+    connect(ui->actionDirect, &QAction::triggered, this, [=](){
+        mode = 0;
+        ui->actionDirect->setEnabled(false);
+        ui->actionPromiscuous->setEnabled(true);
     });
     // 开启新线程处理数据
     connect(thread, &multhread::getPkt_data, this, &MainWindow::pkt_dataHandler);
@@ -105,6 +126,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
     u_char offset1 = 0;
     u_char offset2 = 0;
     u_char transProtocol = 0;
+    QColor color;
     switch (netProtocol){
     // IPv4
     case 0x0800:
@@ -117,6 +139,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         switch (transProtocol){
         case 6:
             packet.setProtocol("TCP");
+            color = QColor(216,191,216);
             packet.setInfo(QString::number(packet.getTcpSport(offset1)));
             packet.setInfo("->");
             packet.setInfo(QString::number(packet.getTcpDport(offset1)));
@@ -126,6 +149,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             break;
         case 17:
             packet.setProtocol("UDP");
+            color = QColor(144,238,144);
             packet.setInfo(QString::number(packet.getUdpSport(offset1)));
             packet.setInfo("->");
             packet.setInfo(QString::number(packet.getTcpDport(offset1)));
@@ -150,6 +174,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         switch (transProtocol){
         case 6:
             packet.setProtocol("TCP");
+            color = QColor(216,191,216);
             packet.setInfo(QString::number(packet.getTcpSport(offset1)));
             packet.setInfo("->");
             packet.setInfo(QString::number(packet.getTcpDport(offset1)));
@@ -159,6 +184,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             break;
         case 17:
             packet.setProtocol("UDP");
+            color = QColor(144,238,144);
             packet.setInfo(QString::number(packet.getUdpSport(offset1)));
             packet.setInfo("->");
             packet.setInfo(QString::number(packet.getTcpDport(offset1)));
@@ -192,6 +218,9 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         ui->tableWidget->setItem(counterNum,4,new QTableWidgetItem(packet.getProtocol()));
         ui->tableWidget->setItem(counterNum,5,new QTableWidgetItem(QString::number(packet.getLength())));
         ui->tableWidget->setItem(counterNum,6,new QTableWidgetItem(packet.getInfo()));
+        for(int i = 0;i < 7;i++){
+            ui->tableWidget->item(counterNum,i)->setBackground(color);
+        }
         counterNum++;
     }
 
@@ -215,6 +244,7 @@ void MainWindow::on_comboBox_currentIndexChanged(int index){
 
 int MainWindow::capture(){
     if(device){
+//        qDebug() << mode;
         device_pointer = pcap_open_live(device->name, 65536, mode, 1000, errbuf); // mode为1表示混杂模式
     }else{
          return -1;
@@ -326,14 +356,4 @@ void MainWindow::parseData(int row, int clumn){
         break;
     }
 }
-
-
-
-
-
-
-
-
-
-
 
