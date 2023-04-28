@@ -82,17 +82,9 @@
         </widget>
        </item>
       </layout>
-      <zorder>tableWidget</zorder>
-      <zorder>treeWidget</zorder>
-      <zorder>tableWidget</zorder>
-      <zorder>tableWidget</zorder>
-      <zorder>treeWidget</zorder>
      </widget>
     </item>
    </layout>
-   <zorder>widget</zorder>
-   <zorder>lineEdit</zorder>
-   <zorder>widget_2</zorder>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -107,16 +99,29 @@
     <property name="title">
      <string>file</string>
     </property>
+    <addaction name="actionOpen"/>
+    <addaction name="separator"/>
+    <addaction name="actionSave"/>
    </widget>
    <widget class="QMenu" name="menuCapture">
     <property name="title">
      <string>capture</string>
     </property>
     <addaction name="actionRun"/>
+    <addaction name="separator"/>
     <addaction name="actionStop"/>
+   </widget>
+   <widget class="QMenu" name="menuMode">
+    <property name="title">
+     <string>mode</string>
+    </property>
+    <addaction name="actionPromiscuous"/>
+    <addaction name="separator"/>
+    <addaction name="actionDirect"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuCapture"/>
+   <addaction name="menuMode"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="mainToolBar">
@@ -138,6 +143,26 @@
   <action name="actionStop">
    <property name="text">
     <string>stop</string>
+   </property>
+  </action>
+  <action name="actionPromiscuous">
+   <property name="text">
+    <string>promiscuous</string>
+   </property>
+  </action>
+  <action name="actionDirect">
+   <property name="text">
+    <string>direct</string>
+   </property>
+  </action>
+  <action name="actionOpen">
+   <property name="text">
+    <string>open</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="text">
+    <string>save</string>
    </property>
   </action>
  </widget>
