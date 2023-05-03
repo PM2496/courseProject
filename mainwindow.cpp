@@ -126,8 +126,32 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
     u_char offset1 = 0;
     u_char offset2 = 0;
     u_char transProtocol = 0;
+    u_short opCode;
     QColor color;
     switch (netProtocol){
+    // ARP
+    case 0x0806:
+        packet.setSAddr(packet.getArpSMacAddr(offset));
+        packet.setProtocol("ARP");
+        color = QColor(218, 221, 27);
+        opCode = packet.getArpOpCode(offset);
+        // ARP请求
+        if (opCode == 1){
+            packet.setDAddr("Broadcast");
+            packet.setInfo("Who has ");
+            packet.setInfo(packet.getArpDAddr(offset));
+            packet.setInfo("? Tell ");
+            packet.setInfo(packet.getArpSAddr(offset));
+        }
+        // ARP应答
+        else if(opCode == 2){
+            packet.setDAddr(packet.getArpDMacAddr(offset));
+            packet.setInfo(packet.getArpSAddr(offset));
+            packet.setInfo(" is at ");
+            packet.setInfo(packet.getArpSMacAddr(offset));
+        }
+
+        break;
     // IPv4
     case 0x0800:
         // 设置源地址
@@ -197,12 +221,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             break;
         }
         break;
-//    // ARP
-//    case 0x0806:
-//        packet.setProtocol("ARP");
-//        arpHandler(packet, 14);
-//        break;
-    // Don't care
+
     default:
         flag = false;
         break;
@@ -276,6 +295,7 @@ void MainWindow::parseData(int row, int clumn){
     u_char offset = 14;
     u_char offset1 = 0;
     u_char offset2 = 0;
+    QTreeWidgetItem * item0;
     QTreeWidgetItem * item1;
     QTreeWidgetItem * item2;
     QTreeWidgetItem * item3;
@@ -285,6 +305,30 @@ void MainWindow::parseData(int row, int clumn){
     u_char stat = 0;
     u_short netProtocol = datas[row].getNetProtocol();
     switch(netProtocol){
+    case 0x0806:
+        item->addChild(new QTreeWidgetItem(QStringList()<<"Type: ARP"));
+        item0 = new QTreeWidgetItem(QStringList()<<"Address Resolution Protocol");
+        ui->treeWidget->addTopLevelItem(item0);
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Hardware type:"+datas[row].getArpHType(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol type:"+datas[row].getArpProType(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Hardware size:"+QString::number(datas[row].getArpHSize(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol size:"+QString::number(datas[row].getArpProSize(offset))));
+        if(datas[row].getArpOpCode(offset) == 1){
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode:request (1)"));
+        }
+        else if(datas[row].getArpOpCode(offset) == 2){
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode:reply (2)"));
+        }
+        else{
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode:"+QString::number(datas[row].getArpOpCode(offset))));
+        }
+
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Sender MAC address:"+datas[row].getArpSMacAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Sender IP address:"+datas[row].getArpSAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Target MAC address:"+datas[row].getArpDMacAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Target IP address:"+datas[row].getArpDAddr(offset)));
+
+        break;
     case 0x0800:
         item->addChild(new QTreeWidgetItem(QStringList()<<"Type: IPv4"));
         item1 = new QTreeWidgetItem(QStringList()<<"Internet Protocol Version 4");
