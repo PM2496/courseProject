@@ -42,8 +42,19 @@ public:
     QString getSMacAddr();
     QString getDMacAddr();
 
+    QString byteToHex(u_char str); // 进制转换
 
-    QString byteToHex(u_char str);
+    // ARP属性
+    u_short getArpHType(u_char offset);
+    u_short getArpProType(u_char offset);
+    u_char getArpHSize(u_char offset);
+    u_char getArpProSize(u_char offset);
+    u_short getArpOpCode(u_char offset);
+    QString getArpSMacAddr(u_char offset);
+    QString getArpSAddr(u_char offset);
+    QString getArpDMacAddr(u_char offset);
+    QString getArpDAddr(u_char offset);
+
     // IPv4属性
     u_char getIPv4Ver(u_char offset);
     u_char getIPv4Hlen(u_char offset);

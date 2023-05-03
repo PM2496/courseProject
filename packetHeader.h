@@ -6,22 +6,36 @@
 //#include <QString>
 #include "pcap.h"
 
-// 6字节MAC地址
-typedef struct MACAddress{
-    u_char byte1;
-    u_char byte2;
-    u_char byte3;
-    u_char byte4;
-    u_char byte5;
-    u_char byte6;
-} MACAddress;
+//// 6字节MAC地址
+//typedef struct MACAddress{
+//    u_char byte1;
+//    u_char byte2;
+//    u_char byte3;
+//    u_char byte4;
+//    u_char byte5;
+//    u_char byte6;
+//} MACAddress;
 
 // 以太网头部
 typedef struct etherHeader{
-    MACAddress sMacAddr; // 源MAC地址
-    MACAddress dMacAddr; // 目的MAC地址
-    u_short type; // 类型（0800：IPv4，0806：ARP，8035：RARP）
+    u_char dMacAddr[6]; // 源MAC地址
+    u_char sMacAddr[6]; // 目的MAC地址
+    u_short type; // 类型（0800：IPv4，0806：ARP）
 } etherHeader;
+
+// ARP请求
+#pragma pack(1) // 阻止结构体自动对齐
+typedef struct arpHeader{
+    u_short hardwareType; // 硬件类型
+    u_short protoType; // 协议类型，表示要映射的协议地址的类型，ipv4为0x0800
+    u_char hardwareSize; // 硬件地址长度，MAC地址6字节
+    u_char protoSize; // 协议地址长度，IP地址4字节
+    u_short opCode; // 1表示ARP请求，2表示ARP应答，3表示RARP请求，4为RAPR应答
+    u_char sMacAddr[6]; // 源MAC地址
+    u_int sAddr; //源IP地址
+    u_char dMacAddr[6]; // 目的MAC地址
+    u_int dAddr; // 目的IP地址
+} arpHeader;
 
 // ipv4头部
 typedef struct ipv4Header{

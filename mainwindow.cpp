@@ -126,8 +126,32 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
     u_char offset1 = 0;
     u_char offset2 = 0;
     u_char transProtocol = 0;
+    u_short opCode;
     QColor color;
     switch (netProtocol){
+    // ARP
+    case 0x0806:
+        packet.setSAddr(packet.getArpSMacAddr(offset));
+        packet.setProtocol("ARP");
+        color = QColor(218, 221, 27);
+        opCode = packet.getArpOpCode(offset);
+        // ARP请求
+        if (opCode == 1){
+            packet.setDAddr("Broadcast");
+            packet.setInfo("Who has ");
+            packet.setInfo(packet.getArpDAddr(offset));
+            packet.setInfo("? Tell ");
+            packet.setInfo(packet.getArpSAddr(offset));
+        }
+        // ARP应答
+        else if(opCode == 2){
+            packet.setDAddr(packet.getArpDMacAddr(offset));
+            packet.setInfo(packet.getArpSAddr(offset));
+            packet.setInfo(" is at ");
+            packet.setInfo(packet.getArpSMacAddr(offset));
+        }
+
+        break;
     // IPv4
     case 0x0800:
         // 设置源地址
@@ -197,12 +221,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             break;
         }
         break;
-//    // ARP
-//    case 0x0806:
-//        packet.setProtocol("ARP");
-//        arpHandler(packet, 14);
-//        break;
-    // Don't care
+
     default:
         flag = false;
         break;

@@ -89,26 +89,27 @@ u_short dataPacket::getNetProtocol(){
 
 QString dataPacket::getSMacAddr(){
     etherHeader * header = (etherHeader *)pkt_data;
-    MACAddress addr = header->sMacAddr;
+    u_char * addr = header->sMacAddr;
     // 格式化输出
-    QString Addr = byteToHex(addr.byte1) + ":"
-                        + byteToHex(addr.byte2) + ":"
-                        + byteToHex(addr.byte3) + ":"
-                        + byteToHex(addr.byte4) + ":"
-                        + byteToHex(addr.byte5) + ":"
-                        + byteToHex(addr.byte6);
+    QString Addr = byteToHex(addr[0]) + ":"
+                        + byteToHex(addr[1]) + ":"
+                        + byteToHex(addr[2]) + ":"
+                        + byteToHex(addr[3]) + ":"
+                        + byteToHex(addr[4]) + ":"
+                        + byteToHex(addr[5]);
     return Addr;
 }
 
 QString dataPacket::getDMacAddr(){
     etherHeader * header = (etherHeader *)pkt_data;
-    MACAddress addr = header->dMacAddr;
-    QString Addr = byteToHex(addr.byte1) + ":"
-                        + byteToHex(addr.byte2) + ":"
-                        + byteToHex(addr.byte3) + ":"
-                        + byteToHex(addr.byte4) + ":"
-                        + byteToHex(addr.byte5) + ":"
-                        + byteToHex(addr.byte6);
+    u_char * addr = header->dMacAddr;
+    // 格式化输出
+    QString Addr = byteToHex(addr[0]) + ":"
+                        + byteToHex(addr[1]) + ":"
+                        + byteToHex(addr[2]) + ":"
+                        + byteToHex(addr[3]) + ":"
+                        + byteToHex(addr[4]) + ":"
+                        + byteToHex(addr[5]);
     return Addr;
 }
 // 字节转16进制
@@ -131,6 +132,72 @@ QString dataPacket::byteToHex(u_char str){
     res.append(low);
 
     return res;
+}
+
+// ARP属性
+u_short dataPacket::getArpHType(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    return ntohs(header->hardwareType);
+}
+
+u_short dataPacket::getArpProType(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    return ntohs(header->protoType);
+}
+
+u_char dataPacket::getArpHSize(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    return header->hardwareSize;
+}
+
+u_char dataPacket::getArpProSize(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    return header->protoSize;
+}
+
+u_short dataPacket::getArpOpCode(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    return ntohs(header->opCode);
+}
+
+QString dataPacket::getArpSMacAddr(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    u_char * addr = header->sMacAddr;
+    // 格式化输出
+    QString Addr = byteToHex(addr[0]) + ":"
+                        + byteToHex(addr[1]) + ":"
+                        + byteToHex(addr[2]) + ":"
+                        + byteToHex(addr[3]) + ":"
+                        + byteToHex(addr[4]) + ":"
+                        + byteToHex(addr[5]);
+    return Addr;
+}
+
+QString dataPacket::getArpSAddr(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    sockaddr_in addr;
+    addr.sin_addr.s_addr = header->sAddr;
+    return QString(inet_ntoa(addr.sin_addr));
+}
+
+QString dataPacket::getArpDMacAddr(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    u_char * addr = header->dMacAddr;
+    // 格式化输出
+    QString Addr = byteToHex(addr[0]) + ":"
+                        + byteToHex(addr[1]) + ":"
+                        + byteToHex(addr[2]) + ":"
+                        + byteToHex(addr[3]) + ":"
+                        + byteToHex(addr[4]) + ":"
+                        + byteToHex(addr[5]);
+    return Addr;
+}
+
+QString dataPacket::getArpDAddr(u_char offset){
+    arpHeader * header = (arpHeader *)(pkt_data+offset);
+    sockaddr_in addr;
+    addr.sin_addr.s_addr = header->dAddr;
+    return QString(inet_ntoa(addr.sin_addr));
 }
 
 // IPv4属性
