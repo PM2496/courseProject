@@ -80,6 +80,7 @@ typedef struct udpHeader{
     u_short sPort; // 源端口号（16位）
     u_short dPort; // 目的端口号（16位）
     u_short len; // 数据包长度（16位，单位是字节）
+    u_short checksum; // 校验和
 } udpHeader;
 
 

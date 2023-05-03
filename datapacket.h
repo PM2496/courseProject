@@ -92,6 +92,8 @@ public:
     u_short getUdpSport(u_char offset);
     u_short getUdpDport(u_char offset);
     u_short getUdpLen(u_char offset);
+    QString getUdpCheckSum(u_char offset);
+    QString getUdpData(u_char offset);
 };
 Q_DECLARE_METATYPE(dataPacket);
 #endif // DATAPACKET_H
