@@ -135,14 +135,28 @@ QString dataPacket::byteToHex(u_char str){
 }
 
 // ARP属性
-u_short dataPacket::getArpHType(u_char offset){
+QString dataPacket::getArpHType(u_char offset){
     arpHeader * header = (arpHeader *)(pkt_data+offset);
-    return ntohs(header->hardwareType);
+    u_short type = ntohs(header->hardwareType);
+    // 等于1表示以太网
+    if (type == 1){
+        return QString("Ethernet (1)");
+    }
+    else{
+        return QString::number(type);
+    }
 }
 
-u_short dataPacket::getArpProType(u_char offset){
+QString dataPacket::getArpProType(u_char offset){
     arpHeader * header = (arpHeader *)(pkt_data+offset);
-    return ntohs(header->protoType);
+    u_short type = ntohs(header->protoType);
+    // 0x0800表示ipv4
+    if (type == 0x0800){
+        return QString("IPv4 (0x0800)");
+    }
+    else{
+        return "0x"+byteToHex(type>>4 & 0xF)+byteToHex(type & 0xF); // 转化为16进制显示
+    }
 }
 
 u_char dataPacket::getArpHSize(u_char offset){

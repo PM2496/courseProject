@@ -45,8 +45,8 @@ public:
     QString byteToHex(u_char str); // 进制转换
 
     // ARP属性
-    u_short getArpHType(u_char offset);
-    u_short getArpProType(u_char offset);
+    QString getArpHType(u_char offset);
+    QString getArpProType(u_char offset);
     u_char getArpHSize(u_char offset);
     u_char getArpProSize(u_char offset);
     u_short getArpOpCode(u_char offset);
