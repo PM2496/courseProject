@@ -2,6 +2,7 @@
 #include "packetHeader.h"
 #include "winsock2.h"
 #include <QMetaType>
+#include <QDebug>
 dataPacket::dataPacket()
 {
     qRegisterMetaType<dataPacket>("dataPacket");
@@ -399,4 +400,23 @@ u_short dataPacket::getUdpDport(u_char offset){
 u_short dataPacket::getUdpLen(u_char offset){
     udpHeader * header = (udpHeader *)(pkt_data + offset);
     return ntohs(header->len);
+}
+
+QString dataPacket::getUdpCheckSum(u_char offset){
+    udpHeader * header = (udpHeader *)(pkt_data + offset);
+    u_short checksum = ntohs(header->checksum);
+    return "0x"+byteToHex(checksum>>8 & 0xF)+byteToHex(checksum & 0xF);
+}
+
+QString dataPacket::getUdpData(u_char offset){
+    udpHeader * header = (udpHeader *)(pkt_data + offset);
+    u_char * pData = (u_char *)(pkt_data + offset + 8);
+    u_short dataLength = ntohs(header->len)-8;
+    QString data = "";
+    if(dataLength>0){
+        for(int i=0; i<dataLength; i++){
+            data += byteToHex(pData[i]);
+        }
+    }
+    return data;
 }

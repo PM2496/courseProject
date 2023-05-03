@@ -299,6 +299,7 @@ void MainWindow::parseData(int row, int clumn){
     QTreeWidgetItem * item1;
     QTreeWidgetItem * item2;
     QTreeWidgetItem * item3;
+    QTreeWidgetItem * UdpData;
     QTreeWidgetItem * flagTree;
     u_char transProtocol = 0;
     u_short tcpHlen_keep_stat = 0;
@@ -306,27 +307,27 @@ void MainWindow::parseData(int row, int clumn){
     u_short netProtocol = datas[row].getNetProtocol();
     switch(netProtocol){
     case 0x0806:
-        item->addChild(new QTreeWidgetItem(QStringList()<<"Type: ARP"));
+        item->addChild(new QTreeWidgetItem(QStringList()<<"Type: ARP "));
         item0 = new QTreeWidgetItem(QStringList()<<"Address Resolution Protocol");
         ui->treeWidget->addTopLevelItem(item0);
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Hardware type:"+datas[row].getArpHType(offset)));
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol type:"+datas[row].getArpProType(offset)));
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Hardware size:"+QString::number(datas[row].getArpHSize(offset))));
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol size:"+QString::number(datas[row].getArpProSize(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Hardware type: "+datas[row].getArpHType(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol type: "+datas[row].getArpProType(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Hardware size: "+QString::number(datas[row].getArpHSize(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol size: "+QString::number(datas[row].getArpProSize(offset))));
         if(datas[row].getArpOpCode(offset) == 1){
-            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode:request (1)"));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode: request (1)"));
         }
         else if(datas[row].getArpOpCode(offset) == 2){
-            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode:reply (2)"));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode: reply (2)"));
         }
         else{
-            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode:"+QString::number(datas[row].getArpOpCode(offset))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Opcode: "+QString::number(datas[row].getArpOpCode(offset))));
         }
 
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Sender MAC address:"+datas[row].getArpSMacAddr(offset)));
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Sender IP address:"+datas[row].getArpSAddr(offset)));
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Target MAC address:"+datas[row].getArpDMacAddr(offset)));
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Target IP address:"+datas[row].getArpDAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Sender MAC address: "+datas[row].getArpSMacAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Sender IP address: "+datas[row].getArpSAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Target MAC address: "+datas[row].getArpDMacAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Target IP address: "+datas[row].getArpDAddr(offset)));
 
         break;
     case 0x0800:
@@ -388,6 +389,15 @@ void MainWindow::parseData(int row, int clumn){
             item3->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getUdpSport(offset1))));
             item3->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port: "+QString::number(datas[row].getUdpDport(offset1))));
             item3->addChild(new QTreeWidgetItem(QStringList()<<"Length: "+QString::number(datas[row].getUdpLen(offset1))));
+            item3->addChild(new QTreeWidgetItem(QStringList()<<"Checksum: "+datas[row].getUdpCheckSum(offset1)));
+
+            if(datas[row].getUdpLen(offset1)>8){
+                UdpData = new QTreeWidgetItem(QStringList()<<"Data ("+QString::number(datas[row].getUdpLen(offset1)-8)+" bytes)");
+                ui->treeWidget->addTopLevelItem(UdpData);
+
+                UdpData->addChild(new QTreeWidgetItem(QStringList()<<"data: "+datas[row].getUdpData(offset1)));
+            }
+
             break;
         default:
             break;
