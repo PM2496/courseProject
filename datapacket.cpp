@@ -381,9 +381,8 @@ u_short dataPacket::getTcpUrg_ptr(u_char offset){
     return ntohs(header->urg_ptr);
 }
 
-u_int dataPacket::getTcpOption(u_char offset){
-    tcpHeader * header = (tcpHeader *)(pkt_data + offset);
-    return ntohl(header->option);
+u_char * dataPacket::getTcpOption(u_char offset){
+    return (u_char *)(pkt_data + offset + 20);
 }
 
 // udp属性

@@ -72,7 +72,6 @@ typedef struct tcpHeader{
     u_short winSize; // 窗口大小（16位）
     u_short checkSum; // Tcp校验和（16位）
     u_short urg_ptr; // 紧急指针（16位）
-    u_int option; // 选项（32位）
 } tcpHeader;
 
 // udp头部
@@ -83,9 +82,3 @@ typedef struct udpHeader{
     u_short checksum; // 校验和
 } udpHeader;
 
-
-
-// http头部
-typedef struct httpHeader{
-
-} httpHeader;

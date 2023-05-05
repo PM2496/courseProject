@@ -124,10 +124,11 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
     bool flag = true;
     u_char offset = 14;
     u_char offset1 = 0;
-    u_char offset2 = 0;
+//    u_char offset2 = 0;
     u_char transProtocol = 0;
     u_short opCode;
     QColor color;
+    u_char * tcpData = nullptr; // 用于判断是否为http协议
     switch (netProtocol){
     // ARP
     case 0x0806:
@@ -170,6 +171,15 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             packet.setInfo(", len=");
             // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
             packet.setInfo(QString::number(packet.getIPv4Tlen(offset)-packet.getIPv4Hlen(offset)-(packet.getTcpHlen_keep_stat(offset1)>>12)*4));
+
+            // 判断是否为http
+            tcpData = packet.getTcpOption(offset1)+(packet.getTcpHlen_keep_stat(offset1)>>12)*4-20; // tcp选项指针字段加上选项长度等于tcp数据指针字段
+            if ((char(*tcpData) == 'G' && char(*(tcpData+1)) == 'E' && char(*(tcpData+2)) == 'T')
+                    || (char(*tcpData) == 'P' && char(*(tcpData+1)) == 'O' && char(*(tcpData+2)) == 'S' && char(*(tcpData+3)) == 'T')
+                    || (char(*tcpData) == 'H' && char(*(tcpData+1)) == 'T' && char(*(tcpData+2)) == 'T' && char(*(tcpData+3)) == 'P')){
+                packet.setProtocol("HTTP");
+                color = QColor(27, 93, 221);
+            }
             break;
         case 17:
             packet.setProtocol("UDP");
@@ -194,7 +204,8 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
         // 设置目的地址
         packet.setDAddr(packet.getIpv6DAddr(offset));
         transProtocol = packet.getIpv6NextHeader(offset);
-        offset1 = offset + 40; // ipv6头部长度为40字节
+        offset1 = offset + 40; // ipv6头部长度为40字节，这里不考虑扩展头部长度
+
         switch (transProtocol){
         case 6:
             packet.setProtocol("TCP");
@@ -205,6 +216,13 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             packet.setInfo(", len=");
             // 设置包中数据长度，等于ipv6有效载荷数据包长度减去tcp首部长度
             packet.setInfo(QString::number(packet.getIpv6Len(offset)-(packet.getTcpHlen_keep_stat(offset1)>>12)*4));
+
+            // 判断是否为http
+            tcpData = packet.getTcpOption(offset1)+(packet.getTcpHlen_keep_stat(offset1)>>12)*4-20; // tcp选项指针字段加上选项长度等于tcp数据指针字段
+            if (char(*tcpData) == 'H' && char(*(tcpData+1)) == 'T' && char(*(tcpData+2) == 'T' && char(*(tcpData+3)) == 'P')){
+                packet.setProtocol("HTTP");
+                color = QColor(27, 93, 221);
+            }
             break;
         case 17:
             packet.setProtocol("UDP");
@@ -292,18 +310,29 @@ void MainWindow::parseData(int row, int clumn){
     ui->treeWidget->addTopLevelItem(item);
     item->addChild(new QTreeWidgetItem(QStringList()<<"Source: "+datas[row].getSMacAddr()));
     item->addChild(new QTreeWidgetItem(QStringList()<<"Destination: "+datas[row].getDMacAddr()));
+    // switch case语句里面不能定义变量
     u_char offset = 14;
     u_char offset1 = 0;
-    u_char offset2 = 0;
+//    u_char offset2 = 0;
+
     QTreeWidgetItem * item0;
-    QTreeWidgetItem * item1;
-    QTreeWidgetItem * item2;
-    QTreeWidgetItem * item3;
     QTreeWidgetItem * UdpData;
     QTreeWidgetItem * flagTree;
+    QTreeWidgetItem * TcpOption;
+//    QTreeWidgetItem * TcpData;
     u_char transProtocol = 0;
     u_short tcpHlen_keep_stat = 0;
+    u_char tcpOptionLength = 0; // tcp option字段长度
+    u_char * tcpOption = nullptr; // tcp option字段指针
+    u_char * tcpData = nullptr; // tcp数据字段指针
+    QString httpHeader = "";
+    // tcp option字段各选项
+    u_char kind = 0;
+    u_char length = 0;
+//    u_char * info = nullptr;
+    // tcp flag字段
     u_char stat = 0;
+
     u_short netProtocol = datas[row].getNetProtocol();
     switch(netProtocol){
     case 0x0806:
@@ -332,44 +361,44 @@ void MainWindow::parseData(int row, int clumn){
         break;
     case 0x0800:
         item->addChild(new QTreeWidgetItem(QStringList()<<"Type: IPv4"));
-        item1 = new QTreeWidgetItem(QStringList()<<"Internet Protocol Version 4");
-        ui->treeWidget->addTopLevelItem(item1);
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Version: 4"));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Header Length: "+QString::number(datas[row].getIPv4Hlen(offset))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Tos: "+QString::number(datas[row].getIPv4Tos(offset))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Total Length:"+QString::number(datas[row].getIPv4Tlen(offset))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Identification: "+QString::number(datas[row].getIpv4Identification(offset))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Flags: "+QString::number(datas[row].getIpv4Flags(offset))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Fragment Offset: "+QString::number(datas[row].getIpv4Offset(offset))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Time to Live: "+QString::number(datas[row].getIpv4Ttl(offset))));
+        item0 = new QTreeWidgetItem(QStringList()<<"Internet Protocol Version 4");
+        ui->treeWidget->addTopLevelItem(item0);
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Version: 4"));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Header Length: "+QString::number(datas[row].getIPv4Hlen(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Tos: "+QString::number(datas[row].getIPv4Tos(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Total Length:"+QString::number(datas[row].getIPv4Tlen(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Identification: "+QString::number(datas[row].getIpv4Identification(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Flags: "+QString::number(datas[row].getIpv4Flags(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Fragment Offset: "+QString::number(datas[row].getIpv4Offset(offset))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Time to Live: "+QString::number(datas[row].getIpv4Ttl(offset))));
         transProtocol = datas[row].getIpv4Protocol(offset);
         switch (transProtocol){
         case 6:
-            item1->addChild(new QTreeWidgetItem(QStringList()<<"Protocol: TCP"));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol: TCP"));
             break;
         case 17:
-            item1->addChild(new QTreeWidgetItem(QStringList()<<"Protocol: UDP"));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Protocol: UDP"));
             break;
         default:
             break;
         }
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Header CheckSum: "+QString::number((datas[row].getIpv4Crc(offset)))));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Source Address: "+datas[row].getIpv4SAddr(offset)));
-        item1->addChild(new QTreeWidgetItem(QStringList()<<"Destination Address: "+datas[row].getIpv4DAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Header CheckSum: "+QString::number((datas[row].getIpv4Crc(offset)))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Source Address: "+datas[row].getIpv4SAddr(offset)));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Destination Address: "+datas[row].getIpv4DAddr(offset)));
         offset1 = offset + datas[row].getIPv4Hlen(offset);
         switch (transProtocol){
         case 6:
-            item2 = new QTreeWidgetItem(QStringList()<<"Transmission Control Protocol");
-            ui->treeWidget->addTopLevelItem(item2);
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getTcpSport(offset1))));
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port:"+QString::number(datas[row].getTcpDport(offset1))));
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"Sequence Number: "+QString::number(datas[row].getTcpSeq(offset1))));
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"Acknowledgement Number: "+QString::number(datas[row].getTcpAck(offset1))));
+            item0 = new QTreeWidgetItem(QStringList()<<"Transmission Control Protocol");
+            ui->treeWidget->addTopLevelItem(item0);
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getTcpSport(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port:"+QString::number(datas[row].getTcpDport(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Sequence Number: "+QString::number(datas[row].getTcpSeq(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Acknowledgement Number: "+QString::number(datas[row].getTcpAck(offset1))));
             tcpHlen_keep_stat = datas[row].getTcpHlen_keep_stat(offset1);
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"Header Length: "+QString::number((tcpHlen_keep_stat>>12)*4)));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Header Length: "+QString::number((tcpHlen_keep_stat>>12)*4)));
 
             flagTree = new QTreeWidgetItem(QStringList()<<"Flags:" );
-            item2->addChild(flagTree);
+            item0->addChild(flagTree);
             flagTree->addChild(new QTreeWidgetItem(QStringList()<<"Keeped: "+QString::number((tcpHlen_keep_stat>>6)&0x3F)));
             stat = tcpHlen_keep_stat&0x3F;
             flagTree->addChild(new QTreeWidgetItem(QStringList()<<"URG:"+QString::number((stat>>5))));
@@ -378,18 +407,75 @@ void MainWindow::parseData(int row, int clumn){
             flagTree->addChild(new QTreeWidgetItem(QStringList()<<"RST:"+QString::number((stat>>2)&0x1)));
             flagTree->addChild(new QTreeWidgetItem(QStringList()<<"SYN:"+QString::number((stat>>1)&0x1)));
             flagTree->addChild(new QTreeWidgetItem(QStringList()<<"FIN:"+QString::number(stat&0x1)));
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"WinSize: "+QString::number(datas[row].getTcpWinsize(offset1))));
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"CheckSum: "+QString::number(datas[row].getTcpChecksum(offset1))));
-            item2->addChild(new QTreeWidgetItem(QStringList()<<"Urgent Pointer: "+QString::number(datas[row].getTcpUrg_ptr(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"WinSize: "+QString::number(datas[row].getTcpWinsize(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"CheckSum: "+QString::number(datas[row].getTcpChecksum(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Urgent Pointer: "+QString::number(datas[row].getTcpUrg_ptr(offset1))));
+            tcpOptionLength = (tcpHlen_keep_stat>>12)*4 - 20; //头部长度减去固定20字节，得到选项字段长度
+            if (tcpOptionLength != 0){
+                item0 = new QTreeWidgetItem(QStringList()<<"Options");
+                ui->treeWidget->addTopLevelItem(item0);
+                while(tcpOptionLength){
+                    tcpOption = datas[row].getTcpOption(offset1);
+                    kind = *tcpOption;
+                    TcpOption = new QTreeWidgetItem(QStringList()<<"TCP Option");
+                    item0->addChild(TcpOption);
+                    if (kind == 0){
+                        length = 1;
 
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Kind: EOL"));
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Length: 1"));
+                    }
+                    else if(kind == 1){
+                        length = 1;
+
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Kind: NOP"));
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Length: 1"));
+                    }
+                    else if(kind == 2){
+                        length = 4;
+
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Kind: MSS"));
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Length: 4"));
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"MSS Value: "+QString::number(ntohs(*(u_short *)(tcpOption+2)))));
+                    }else{
+                        kind = *tcpOption;
+                        length = *(tcpOption+1);
+
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Kind: "+QString::number(kind)));
+                        TcpOption->addChild(new QTreeWidgetItem(QStringList()<<"Length: "+QString::number(kind)));
+
+                    }
+                    tcpOptionLength -= length;
+                    tcpOption += length;
+                }
+            }
+            tcpData = datas[row].getTcpOption(offset1)+tcpOptionLength; // tcp选项字段指针加上选项字段长度，得到tcp数据字段指针
+            // 如果数据字段以GET或POST或HTTP开头，我们就认为是http协议
+            if ((char(*tcpData) == 'G' && char(*(tcpData+1)) == 'E' && char(*(tcpData+2)) == 'T')
+                    || (char(*tcpData) == 'P' && char(*(tcpData+1)) == 'O' && char(*(tcpData+2)) == 'S' && char(*(tcpData+3)) == 'T')
+                    || (char(*tcpData) == 'H' && char(*(tcpData+1)) == 'T' && char(*(tcpData+2)) == 'T' && char(*(tcpData+3)) == 'P')){
+                item0 = new QTreeWidgetItem(QStringList()<<"Hypertext Transfer Protocol");
+                ui->treeWidget->addTopLevelItem(item0);
+                while (true){
+                    if (*tcpData == 0x0d && *(tcpData+1) == 0x0a){
+                        if(*(tcpData+2) == 0x0d && *(tcpData+3) == 0x0a) break;
+                        item0->addChild(new QTreeWidgetItem(QStringList()<<httpHeader));
+                        httpHeader = "";
+                        tcpData += 2;
+                        continue;
+                    }
+                    httpHeader += char(*tcpData);
+                    tcpData += 1;
+                }
+            }
             break;
         case 17:
-            item3= new QTreeWidgetItem(QStringList()<<"User Datagram Protocol");
-            ui->treeWidget->addTopLevelItem(item3);
-            item3->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getUdpSport(offset1))));
-            item3->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port: "+QString::number(datas[row].getUdpDport(offset1))));
-            item3->addChild(new QTreeWidgetItem(QStringList()<<"Length: "+QString::number(datas[row].getUdpLen(offset1))));
-            item3->addChild(new QTreeWidgetItem(QStringList()<<"Checksum: "+datas[row].getUdpCheckSum(offset1)));
+            item0= new QTreeWidgetItem(QStringList()<<"User Datagram Protocol");
+            ui->treeWidget->addTopLevelItem(item0);
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Source Port: "+QString::number(datas[row].getUdpSport(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Destination Port: "+QString::number(datas[row].getUdpDport(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Length: "+QString::number(datas[row].getUdpLen(offset1))));
+            item0->addChild(new QTreeWidgetItem(QStringList()<<"Checksum: "+datas[row].getUdpCheckSum(offset1)));
 
             if(datas[row].getUdpLen(offset1)>8){
                 UdpData = new QTreeWidgetItem(QStringList()<<"Data ("+QString::number(datas[row].getUdpLen(offset1)-8)+" bytes)");
