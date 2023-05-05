@@ -86,8 +86,7 @@ public:
     u_short getTcpWinsize(u_char offset);
     u_short getTcpChecksum(u_char offset);
     u_short getTcpUrg_ptr(u_char offset);
-    u_int getTcpOption(u_char offset);
-
+    u_char * getTcpOption(u_char offset);
     // udp属性
     u_short getUdpSport(u_char offset);
     u_short getUdpDport(u_char offset);
