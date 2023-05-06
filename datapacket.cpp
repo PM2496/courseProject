@@ -19,6 +19,11 @@ void dataPacket::setPkt_data(const u_char *pkt_data, int length){
     else this->pkt_data = nullptr;
 }
 
+const u_char * dataPacket::getPkt_data(){
+    return this->pkt_data;
+}
+
+
 void dataPacket::setTime(QString time){
     this->time = time;
 }

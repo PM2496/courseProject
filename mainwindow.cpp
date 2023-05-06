@@ -1,12 +1,15 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QString>
+#include <string>
 #include <QDebug>
 #include <QStringList>
 #include <QMessageBox>
+#include <QFileDialog>
 #include <QColor>
 #include "multhread.h"
 #include "packetHeader.h"
+#include <windows.h>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -14,6 +17,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     counterNum = 0;
+
+//    qDebug() << filePath;
     mode = 1; // 默认为混杂模式
     // 设置file相关选项，刚开始保存选项无法点击
     ui->actionSave->setEnabled(false);
@@ -47,6 +52,53 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionStop->setEnabled(false);
 
     connect(ui->actionRun, &QAction::triggered, this, [=](){
+        // 如果counterNum大于0，需要询问是否保存数据
+        if(counterNum > 0){
+            QMessageBox::StandardButton reply;
+            reply = QMessageBox::question(this, "Unsaved packets",
+                                          "您是否要在开始新捕获前保存已捕获的分组？\n若不保存，您已经捕获的分组将会丢失",
+
+                                          QMessageBox::Yes | QMessageBox::No |QMessageBox::Cancel);
+            // 选择cancel什么也不做
+            if(reply == QMessageBox::Cancel){
+                return;
+            }
+            // 选择yes开始保存，保存后清空所有数据并重新开始捕获
+            else if(reply == QMessageBox::Yes){
+                QString filePath = QFileDialog::getSaveFileName(this, "save", "./", "pcap files(*.pcap)");
+
+                WCHAR sour[100], dest[100];
+                memset(sour, 0, sizeof(sour));
+                memset(dest, 0, sizeof(dest));
+                char * f1 = tempFilePath.toLatin1().data();
+                char * f2 = filePath.toLatin1().data();
+                MultiByteToWideChar(CP_ACP, 0, f1, strlen(f1)+1, sour, sizeof(sour)/sizeof(sour[0]));
+                MultiByteToWideChar(CP_ACP, 0, f2, strlen(f2)+1, dest, sizeof(dest)/sizeof(dest[0]));
+                qDebug() << tempFilePath;
+                qDebug() << filePath;
+                CopyFile(sour, dest, false);//FALSE:如果目标位置已经存在同名文件，就覆盖，return 1
+                                            //TRUE:如果目标位置已经存在同名文件，则补拷贝，return 0
+                                            //后者路径若不错在，return 0
+                remove(tempFilePath.toLatin1().data());
+
+                datas.clear();
+                counterNum = 0;
+                ui->tableWidget->setRowCount(1);
+                ui->tableWidget->clearContents();
+                ui->treeWidget->clear();
+            }
+            // 选择NO就直接清空所有数据并重新开始捕获
+            else if(reply == QMessageBox::No){
+                remove(tempFilePath.toLatin1().data());
+                datas.clear();
+                counterNum = 0;
+                ui->tableWidget->setRowCount(1);
+                ui->tableWidget->clearContents();
+                ui->treeWidget->clear();
+//                widgets[index-1].setRowCount(0)
+//                widgets[index-1].clearContents()
+            }
+        }
         int res = capture();
         // 捕获正常工作且pointer不为空，开启线程
         if(res != -1 && device_pointer){
@@ -65,6 +117,8 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(ui->actionStop, &QAction::triggered, this, [=](){
         thread->resetFlag();
+//        dumpfile = thread->getDumpfile();
+        tempFilePath = thread->getFilePath();
         thread->quit();
         thread->wait();
         pcap_close(device_pointer);
@@ -299,6 +353,7 @@ int MainWindow::capture(){
         }
         statusBar()->showMessage(device->description);
     }
+
     return 0;
 }
 

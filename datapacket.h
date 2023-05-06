@@ -25,6 +25,7 @@ private:
 public:
     // 固定属性（必定有的）
     void setPkt_data(const u_char * pkt_data, int length);
+    const u_char * getPkt_data();
     void setTime(QString time);
     QString getTime();
     void setLength(u_int length);
