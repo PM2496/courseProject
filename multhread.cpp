@@ -3,8 +3,21 @@
 #include <direct.h>
 multhread::multhread()
 {
+    this->isReadingFile = false;
     this->isDone = true;
     this->filePath = QString(getcwd(NULL, 100)) + "\\temp.pcap";
+}
+
+void multhread::setIsReadingFile(){
+    this->isReadingFile = true;
+}
+
+void multhread::resetIsReadingFile(){
+    this->isReadingFile = false;
+}
+
+bool multhread::getIsReadingFile(){
+    return this->isReadingFile;
 }
 
 bool multhread::setPointer(pcap_t *pointer){
@@ -36,13 +49,21 @@ void multhread::resetFlag(){
 }
 
 void multhread::run(){
+    int i = 0;
+
     while(true){
         if(isDone)
             break;
         int res = pcap_next_ex(pointer, &header, &pkt_data);
-        if(res == 0)
+
+        // 0表示超时
+        if(res == 0){
             continue;
-        pcap_dump((u_char *)dumpfile, header, pkt_data);
+        }
+        if(!isReadingFile){
+            pcap_dump((u_char *)dumpfile, header, pkt_data);
+        }
+        i++;
         local_time_sec = header->ts.tv_sec;
         localtime_s(&local_time, &local_time_sec);
         strftime(timeString, sizeof(timeString), "%H:%M:%S", &local_time);
@@ -52,6 +73,13 @@ void multhread::run(){
         packet.setPkt_data(pkt_data, header->len);
         packet.setTime(timeString);
         emit getPkt_data(packet);
+        // -2表示读到最后一个文件，此时发送结束线程的信号
+        if(res == -2){
+            if (isReadingFile){
+                emit stopReadFile();
+                break;
+            }
+        }
     }
 }
 
