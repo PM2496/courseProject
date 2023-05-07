@@ -51,6 +51,55 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionRun->setEnabled(false);
     ui->actionStop->setEnabled(false);
 
+    // 读到本地文件最后一个报文时，触发信号，结束读取线程
+    connect(thread, &multhread::stopReadFile, this, [=](){
+        thread->resetFlag();
+        thread->resetIsReadingFile();
+        thread->quit();
+        thread->wait();
+        counterNum = 0; //本地文件读取不记录报文数
+    });
+    // 读取本地文件
+    connect(ui->actionOpen, &QAction::triggered, this, [=](){
+        datas.clear();
+        counterNum = 0;
+        ui->tableWidget->setRowCount(1);
+        ui->tableWidget->clearContents();
+        ui->treeWidget->clear();
+        // 打开本地数据
+        QString filePath = QFileDialog::getOpenFileName(this, "open", "./", "pcap files(*.pcap)");
+        qDebug() << filePath;
+
+        device_pointer = pcap_open_offline(filePath.toLatin1().data(), errbuf);
+
+        thread->setIsReadingFile();
+        thread->setPointer(device_pointer);
+        thread->setFlag();
+        thread->start();
+
+    });
+
+    connect(ui->actionSave, &QAction::triggered, this, [=](){
+        // 保存数据
+        QString filePath = QFileDialog::getSaveFileName(this, "save", "./", "pcap files(*.pcap)");
+
+        WCHAR sour[100], dest[100];
+        memset(sour, 0, sizeof(sour));
+        memset(dest, 0, sizeof(dest));
+        char * f1 = tempFilePath.toLatin1().data();
+        char * f2 = filePath.toLatin1().data();
+        MultiByteToWideChar(CP_ACP, 0, f1, strlen(f1)+1, sour, sizeof(sour)/sizeof(sour[0]));
+        MultiByteToWideChar(CP_ACP, 0, f2, strlen(f2)+1, dest, sizeof(dest)/sizeof(dest[0]));
+//        qDebug() << tempFilePath;
+//        qDebug() << filePath;
+        CopyFile(sour, dest, false);//FALSE:如果目标位置已经存在同名文件，就覆盖，return 1
+                                    //TRUE:如果目标位置已经存在同名文件，则补拷贝，return 0
+                                    //后者路径若不错在，return 0
+//        remove(tempFilePath.toLatin1().data());
+        counterNum = 0;
+        ui->actionSave->setEnabled(false);
+    });
+
     connect(ui->actionRun, &QAction::triggered, this, [=](){
         // 如果counterNum大于0，需要询问是否保存数据
         if(counterNum > 0){
@@ -79,7 +128,8 @@ MainWindow::MainWindow(QWidget *parent) :
                 CopyFile(sour, dest, false);//FALSE:如果目标位置已经存在同名文件，就覆盖，return 1
                                             //TRUE:如果目标位置已经存在同名文件，则补拷贝，return 0
                                             //后者路径若不错在，return 0
-                remove(tempFilePath.toLatin1().data());
+//                remove(tempFilePath.toLatin1().data());
+                ui->actionSave->setEnabled(false);
 
                 datas.clear();
                 counterNum = 0;
@@ -89,7 +139,7 @@ MainWindow::MainWindow(QWidget *parent) :
             }
             // 选择NO就直接清空所有数据并重新开始捕获
             else if(reply == QMessageBox::No){
-                remove(tempFilePath.toLatin1().data());
+//                remove(tempFilePath.toLatin1().data());
                 datas.clear();
                 counterNum = 0;
                 ui->tableWidget->setRowCount(1);
@@ -99,6 +149,11 @@ MainWindow::MainWindow(QWidget *parent) :
 //                widgets[index-1].clearContents()
             }
         }
+        // 点击保存按钮后重新捕获前需要清空表格数据
+        datas.clear();
+        ui->tableWidget->setRowCount(1);
+        ui->tableWidget->clearContents();
+        ui->treeWidget->clear();
         int res = capture();
         // 捕获正常工作且pointer不为空，开启线程
         if(res != -1 && device_pointer){
@@ -344,6 +399,7 @@ int MainWindow::capture(){
         pcap_freealldevs(alldevices);
         return -1;
     }else{
+        // 这里只捕获以太网数据
         if(pcap_datalink(device_pointer) != DLT_EN10MB){
             pcap_close(device_pointer);
             pcap_freealldevs(alldevices);
