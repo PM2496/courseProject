@@ -46,7 +46,7 @@ typedef struct ipv4Header{
     u_short flags_offset; // 标志位（高三位），段偏移量（低十三位），注意大小端的不同
     u_char ttl; // 8位生存时间
     u_char protocol; // 8位协议
-    u_short crc; // 16位首部校验和
+    u_short checkSum; // 16位首部校验和
     u_int sAddr; // 源地址（32位）
     u_int dAddr; // 目的地址（32位）
     u_int option_pad; // 选项与填充（32位）

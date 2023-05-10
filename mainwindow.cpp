@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->treeWidget->clear();
         // 打开本地数据
         QString filePath = QFileDialog::getOpenFileName(this, "open", "./", "pcap files(*.pcap)");
-        qDebug() << filePath;
+//        qDebug() << filePath;
 
         device_pointer = pcap_open_offline(filePath.toLatin1().data(), errbuf);
 
@@ -123,8 +123,8 @@ MainWindow::MainWindow(QWidget *parent) :
                 char * f2 = filePath.toLatin1().data();
                 MultiByteToWideChar(CP_ACP, 0, f1, strlen(f1)+1, sour, sizeof(sour)/sizeof(sour[0]));
                 MultiByteToWideChar(CP_ACP, 0, f2, strlen(f2)+1, dest, sizeof(dest)/sizeof(dest[0]));
-                qDebug() << tempFilePath;
-                qDebug() << filePath;
+//                qDebug() << tempFilePath;
+//                qDebug() << filePath;
                 CopyFile(sour, dest, false);//FALSE:如果目标位置已经存在同名文件，就覆盖，return 1
                                             //TRUE:如果目标位置已经存在同名文件，则补拷贝，return 0
                                             //后者路径若不错在，return 0
@@ -298,7 +298,7 @@ void MainWindow::pkt_dataHandler(dataPacket packet){
             packet.setInfo(QString::number(packet.getTcpDport(offset1)));
             packet.setInfo(", len=");
             // 设置包中数据长度，等于ip数据包长度减去ip首部长度再减去tcp首部长度
-            packet.setInfo(QString::number(packet.getUdpLen(offset1)));
+            packet.setInfo(QString::number(packet.getUdpLen(offset1)-8));
             break;
         default:
             flag = false;
@@ -493,7 +493,7 @@ void MainWindow::parseData(int row, int clumn){
         default:
             break;
         }
-        item0->addChild(new QTreeWidgetItem(QStringList()<<"Header CheckSum: "+QString::number((datas[row].getIpv4Crc(offset)))));
+        item0->addChild(new QTreeWidgetItem(QStringList()<<"Header CheckSum: "+QString::number((datas[row].getIpv4CheckSum(offset)))));
         item0->addChild(new QTreeWidgetItem(QStringList()<<"Source Address: "+datas[row].getIpv4SAddr(offset)));
         item0->addChild(new QTreeWidgetItem(QStringList()<<"Destination Address: "+datas[row].getIpv4DAddr(offset)));
         offset1 = offset + datas[row].getIPv4Hlen(offset);
