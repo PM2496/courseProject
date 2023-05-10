@@ -66,7 +66,7 @@ public:
     u_short getIpv4Offset(u_char offset);
     u_char getIpv4Ttl(u_char offset);
     u_char getIpv4Protocol(u_char offset);
-    u_short getIpv4Crc(u_char offset);
+    u_short getIpv4CheckSum(u_char offset);
     QString getIpv4SAddr(u_char offset);
     QString getIpv4DAddr(u_char offset);
 //    u_int getIpv4Option_pad();

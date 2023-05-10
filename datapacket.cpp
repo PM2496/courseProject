@@ -271,9 +271,9 @@ u_char dataPacket::getIpv4Protocol(u_char offset){
     return header->protocol;
 }
 
-u_short dataPacket::getIpv4Crc(u_char offset){
+u_short dataPacket::getIpv4CheckSum(u_char offset){
     ipv4Header * header = (ipv4Header *)(pkt_data+offset);
-    return ntohs(header->crc);
+    return ntohs(header->checkSum);
 }
 
 QString dataPacket::getIpv4SAddr(u_char offset){
