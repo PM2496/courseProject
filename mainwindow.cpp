@@ -67,15 +67,17 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->tableWidget->clearContents();
         ui->treeWidget->clear();
         // 打开本地数据
-        QString filePath = QFileDialog::getOpenFileName(this, "open", "./", "pcap files(*.pcap)");
+        QString filePath = NULL;
+        filePath = QFileDialog::getOpenFileName(this, "open", "./", "pcap files(*.pcap)");
 //        qDebug() << filePath;
+        if(filePath != NULL){
+            device_pointer = pcap_open_offline(filePath.toLatin1().data(), errbuf);
 
-        device_pointer = pcap_open_offline(filePath.toLatin1().data(), errbuf);
-
-        thread->setIsReadingFile();
-        thread->setPointer(device_pointer);
-        thread->setFlag();
-        thread->start();
+            thread->setIsReadingFile();
+            thread->setPointer(device_pointer);
+            thread->setFlag();
+            thread->start();
+        }
 
     });
 
